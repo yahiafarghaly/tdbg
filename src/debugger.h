@@ -4,6 +4,7 @@
 
 #include <iostream>
 #include <vector>
+#include <unordered_map>
 #include <sstream>
 #include <stdlib.h>
 #include <sys/ptrace.h>
@@ -12,6 +13,7 @@
 #include <sys/wait.h>
 #include <string>
 #include <linenoise.h>
+#include "breakpoint.h"
 
 class debugger {
 public:
@@ -21,10 +23,12 @@ public:
     void run();
     void handle_command(const std::string& line);
     void continue_execution();
+    void set_breakpoint_at_address(std::intptr_t addr);
 
 private:
     std::string m_prog_name;
     pid_t m_pid;
+    std::unordered_map<std::intptr_t,breakpoint> m_breakpoints;
 };
 
 #endif /* __DEBUGGER_H */
