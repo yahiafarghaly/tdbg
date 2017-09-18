@@ -12,6 +12,10 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <string>
+#include <cstdio>
+#include <memory>
+#include <stdexcept>
+#include <array>
 #include <linenoise.h>
 #include "breakpoint.h"
 

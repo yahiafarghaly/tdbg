@@ -21,6 +21,26 @@ static bool is_prefix(const std::string& s, const std::string& of) {
     return std::equal(s.begin(), s.end(), of.begin());
 }
 
+static std::intptr_t add_address_offest(pid_t tracee_pid,std::string addr)
+{
+    auto exec = [](const char* cmd) -> std::string {
+            std::array<char, 128> buffer;
+            std::string result;
+            std::shared_ptr<FILE> pipe(popen(cmd, "r"), pclose);
+            if (!pipe) throw std::runtime_error("popen() failed!");
+            while (!feof(pipe.get())) {
+                if (fgets(buffer.data(), 128, pipe.get()) != nullptr)
+                    result += buffer.data();
+            }
+            return result;
+        };
+
+    std::string map_path = "cat /proc/" + std::to_string(tracee_pid) + "/maps";
+    std::string sh_command = map_path + "  | grep 'stack' | cut -d- -f1";
+    auto start_offest = exec(sh_command.c_str());
+    std::intptr_t output  = std::stol(start_offest, 0, 16) + std::stol(addr, 0, 16);
+    return output;
+}
 
 // debugger Class methods
 void debugger::run() {
@@ -48,6 +68,7 @@ void debugger::handle_command(const std::string& line) {
     }
     else if(is_prefix(command, "break")) {
         std::string addr {args[1], 2}; //naively assume that the user has written 0xADDRESS , so take what after 0x
+        //std::intptr_t new_address = add_address_offest(m_pid,addr);
         set_breakpoint_at_address(std::stol(addr, 0, 16));
     }
     else {
