@@ -12,7 +12,6 @@ FILE(GLOB_RECURSE SRC_FILES "src/*.cpp")
 
 add_executable(${execName} ${SRC_FILES} ${LINE_NOISE_SRC})
 
-add_definitions(-std=c++1y) #For GCC < 4.9.3 ,otherwise,  use -std=c++14
-
+add_definitions(-std=c++17) # or -std=c++11 if u don't support 17
 
 add_subdirectory(debugging-examples)
