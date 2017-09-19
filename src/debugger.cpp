@@ -51,14 +51,14 @@ void debugger::run() {
 
     char* line = nullptr;
     while((line = linenoise("tdbg> ")) != nullptr) {
-        handle_command(line);
+        if(!handle_command(line)) break;
         linenoiseHistoryAdd(line);
         linenoiseFree(line);
     }
 }
 
 
-void debugger::handle_command(const std::string& line) {
+bool debugger::handle_command(const std::string& line) {
 
     auto args = split(line,' ');
     auto command = args[0];
@@ -68,12 +68,19 @@ void debugger::handle_command(const std::string& line) {
     }
     else if(is_prefix(command, "break")) {
         std::string addr {args[1], 2}; //naively assume that the user has written 0xADDRESS , so take what after 0x
-        //std::intptr_t new_address = add_address_offest(m_pid,addr);
-        set_breakpoint_at_address(std::stol(addr, 0, 16));
+        std::intptr_t new_address = add_address_offest(m_pid,addr);
+        //set_breakpoint_at_address(std::stol(addr, 0, 16));
+        set_breakpoint_at_address(new_address);
+    }
+    else if(is_prefix(command, "exit"))
+    {
+        return false;
     }
     else {
         std::cerr << "Unknown command\n";
     }
+
+    return true;
 }
 
 
