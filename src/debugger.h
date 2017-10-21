@@ -24,15 +24,26 @@ public:
     debugger (std::string prog_name, pid_t pid)
         : m_prog_name{std::move(prog_name)}, m_pid{pid} {}
 
+    // Start the debugger
     void run();
+    // Handle the debugger user commands.
     bool handle_command(const std::string& line);
-    void continue_execution();
-    void set_breakpoint_at_address(std::intptr_t addr);
 
 private:
+    // The debuggee program name
     std::string m_prog_name;
+    // The debuggee program Process ID
     pid_t m_pid;
-    std::unordered_map<std::intptr_t,breakpoint> m_breakpoints;
+    /* An un-order map of breakpoint objects to be access by its addresses hashes.
+         m_breakpoints[breakpoint address] -> breakpoint object. */
+    std::unordered_map<std::intptr_t, breakpoint> m_breakpoints;
+
+    /*****  Debugger Control functions on debuggee  *****/
+
+    // Continue execution of debuggee program with process ID [m_pid]
+    void continue_execution();
+    // Set a breakpoint at the process ID [m_pid].
+    void set_breakpoint_at_address(std::intptr_t addr);
 };
 
 #endif /* __DEBUGGER_H */

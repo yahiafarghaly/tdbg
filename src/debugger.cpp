@@ -2,14 +2,25 @@
 #include "debugger.h"
 #include "debugger-backend-methods.h"
 
-// debugger Class methods
+/** 
+ *  @brief     Start the debugger
+ * 
+ *  @details    The entry point of the debugger where it waits for user commands.
+ * 
+ *  @return     void
+ */
 void debugger::run() {
     int wait_status;
     auto options = 0;
-    // wait until the traced process sends a SIGTRAP,then forward
+    /* 
+    Wait until the debuggee program(i.e child) sends a SIGTRAP signal where it
+    waits at its entry point til debugger sends to it a signal (PTRACE_CONT) for
+    Contining its execution 
+    */
     waitpid(m_pid, &wait_status, options);
 
     char* line = nullptr;
+    // use linenoise for making a nice command line prompt for the debugger.
     while((line = linenoise("tdbg> ")) != nullptr) {
         if(!handle_command(line)) break;
         linenoiseHistoryAdd(line);
@@ -17,7 +28,11 @@ void debugger::run() {
     }
 }
 
-
+/** 
+ *  @brief     Handling the commands of the debugger
+ * 
+ *  @return     false when exit command is given,otherwise true.
+ */
 bool debugger::handle_command(const std::string& line) {
 
     auto args = split(line,' ');
@@ -44,18 +59,32 @@ bool debugger::handle_command(const std::string& line) {
 }
 
 
-
+/** 
+ *  @brief     continue execution of the debuggee program until the next
+ *              SIGTRAP from debuggee.
+ * 
+ *  @details    SIGTRAP: The SIGTRAP signal is sent to a process(in our case:debugger) when an exception
+ *              (or trap) occurs: a condition that a debugger has requested to be 
+ *              informed of - for example, when a particular function is executed, 
+ *              or when a particular variable changes value or at a certain breakpoint.
+ * 
+ *  @return     void
+ */
 void debugger::continue_execution() {
-    // resume the execution of the debugee program.
+    // Resume the execution of the debugee program.
     ptrace(PTRACE_CONT, m_pid, nullptr, nullptr);
 
     int wait_status;
     auto options = 0;
-    // wait until the debuggee finish
+    // wait until the debuggee sends a SIGTRAP
     waitpid(m_pid, &wait_status, options);
-
 }
 
+/** 
+ *  @brief     Set a breakpoint at the address [addr] of a process [m_pid].
+ * 
+ *  @return     void
+ */
 void debugger::set_breakpoint_at_address(std::intptr_t addr) {
     std::cout << "Set a breakpoint at address 0x" << std::hex << addr << std::endl;
     breakpoint bp {m_pid, addr};
