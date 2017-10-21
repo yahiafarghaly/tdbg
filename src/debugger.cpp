@@ -44,8 +44,8 @@ bool debugger::handle_command(const std::string& line) {
     else if(is_prefix(command, "break")) {
         std::string addr {args[1], 2}; //naively assume that the user has written 0xADDRESS , so take what after 0x
         std::intptr_t new_address = add_address_offest(m_pid,addr);
-        //set_breakpoint_at_address(std::stol(addr, 0, 16));
         set_breakpoint_at_address(new_address);
+        //set_breakpoint_at_address(std::stol(addr, 0, 16));
     }
     else if(is_prefix(command, "exit"))
     {
@@ -86,8 +86,13 @@ void debugger::continue_execution() {
  *  @return     void
  */
 void debugger::set_breakpoint_at_address(std::intptr_t addr) {
-    std::cout << "Set a breakpoint at address 0x" << std::hex << addr << std::endl;
-    breakpoint bp {m_pid, addr};
-    bp.enable();
-    m_breakpoints[addr] = bp;
+    if(m_breakpoints.find(addr) == m_breakpoints.end())
+    {
+        std::cout << "Set a breakpoint at address 0x" << std::hex << addr << std::endl;
+        breakpoint bp {m_pid, addr};
+        bp.enable();
+        m_breakpoints[addr] = bp;
+    }
+    else
+        std::cout << "A breakpoint is already set at 0x" << std::hex << addr << std::endl;
 }
