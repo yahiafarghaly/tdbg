@@ -16,6 +16,7 @@
 #include <memory>
 #include <stdexcept>
 #include <array>
+#include <sys/personality.h>
 #include <linenoise.h>
 #include "breakpoint.h"
 

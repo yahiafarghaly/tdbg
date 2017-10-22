@@ -12,6 +12,12 @@
 void debugger::run() {
     int wait_status;
     auto options = 0;
+    errno = 0;
+    if (personality(ADDR_NO_RANDOMIZE) < 0)
+    {
+        if (EINVAL == errno)
+            std::cout << "The kernel was unable to change the personality.\n";
+    }
     /* 
     Wait until the debuggee program(i.e child) sends a SIGTRAP signal where it
     waits at its entry point til debugger sends to it a signal (PTRACE_CONT) for
