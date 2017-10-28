@@ -10,20 +10,12 @@
  *  @return     void
  */
 void debugger::run() {
-    int wait_status;
-    auto options = 0;
-    errno = 0;
-    if (personality(ADDR_NO_RANDOMIZE) < 0)
-    {
-        if (EINVAL == errno)
-            std::cout << "The kernel was unable to change the personality.\n";
-    }
     /* 
     Wait until the debuggee program(i.e child) sends a SIGTRAP signal where it
-    waits at its entry point til debugger sends to it a signal (PTRACE_CONT) for
+    waits at its entry point till debugger sends it a signal (PTRACE_CONT) for
     Contining its execution 
     */
-    waitpid(m_pid, &wait_status, options);
+    wait_for_signal();
 
     char* line = nullptr;
     // use linenoise for making a nice command line prompt for the debugger.
@@ -49,9 +41,9 @@ bool debugger::handle_command(const std::string& line) {
     }
     else if(is_prefix(command, "break")) {
         std::string addr {args[1], 2}; //naively assume that the user has written 0xADDRESS , so take what after 0x
-        std::intptr_t new_address = add_address_offest(m_pid,addr);
-        set_breakpoint_at_address(new_address);
-        //set_breakpoint_at_address(std::stol(addr, 0, 16));
+       // std::intptr_t new_address = add_address_offest(m_pid,addr);
+       // set_breakpoint_at_address(new_address);
+        set_breakpoint_at_address(std::stol(addr, 0, 16));
     }
     else if(is_prefix(command, "exit"))
     {
@@ -79,11 +71,7 @@ bool debugger::handle_command(const std::string& line) {
 void debugger::continue_execution() {
     // Resume the execution of the debugee program.
     ptrace(PTRACE_CONT, m_pid, nullptr, nullptr);
-
-    int wait_status;
-    auto options = 0;
-    // wait until the debuggee sends a SIGTRAP
-    waitpid(m_pid, &wait_status, options);
+    wait_for_signal();
 }
 
 /** 
@@ -101,4 +89,19 @@ void debugger::set_breakpoint_at_address(std::intptr_t addr) {
     }
     else
         std::cout << "A breakpoint is already set at 0x" << std::hex << addr << std::endl;
+}
+
+/** 
+ *  @brief      An encapsulation of the operation of waitpid
+ *  @details    Wait the debuggee program to send a SIGTRAP signal where it it is 
+ *              got trapped by a breakpoint for example.
+ * 
+ *  @return     void
+ */
+void debugger::wait_for_signal()
+{
+    int wait_status;
+    auto options = 0;
+    // wait until the debuggee sends a SIGTRAP
+    waitpid(m_pid, &wait_status, options);
 }

@@ -20,6 +20,12 @@ int main(int argc, char* argv[]) {
           examine and change the tracee's memory and registers. 
         */
         ptrace(PTRACE_TRACEME, 0, nullptr, nullptr);
+        errno = 0;
+        if (personality(ADDR_NO_RANDOMIZE) < 0)
+        {
+            if (EINVAL == errno)
+                std::cout << "The kernel was unable to change the personality.\n";
+        }
         execl(prog, prog, nullptr);
     }
     else if (pid >= 1)  { 

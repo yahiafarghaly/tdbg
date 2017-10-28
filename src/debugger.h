@@ -29,6 +29,8 @@ public:
     void run();
     // Handle the debugger user commands.
     bool handle_command(const std::string& line);
+    // wait until the debuggee sends a SIGTRAP signal.
+    void wait_for_signal();
 
 private:
     // The debuggee program name
