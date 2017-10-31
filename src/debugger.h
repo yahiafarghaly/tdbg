@@ -49,6 +49,8 @@ private:
     void continue_execution();
     // Set a breakpoint at the process ID [m_pid].
     void set_breakpoint_at_address(std::intptr_t addr);
+    // Show the current register values of process with [m_pid].
+    void dump_registers();
 };
 
 #endif /* __DEBUGGER_H */

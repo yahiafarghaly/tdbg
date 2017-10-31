@@ -1,6 +1,7 @@
 
 #include "debugger.h"
 #include "debugger-backend-methods.h"
+#include <iomanip>
 
 /** 
  *  @brief     Start the debugger
@@ -38,13 +39,13 @@ bool debugger::handle_command(const std::string& line) {
     uint64_t register_value;
 
     if (is_prefix(command, "continue") || is_prefix(command, "c") || is_prefix(command, "cont")) {
-        continue_execution();
+        this->continue_execution();
     }
     else if(is_prefix(command, "break")) {
         std::string addr {args[1], 2}; //naively assume that the user has written 0xADDRESS , so take what after 0x
        // std::intptr_t new_address = add_address_offest(m_pid,addr);
        // set_breakpoint_at_address(new_address);
-        set_breakpoint_at_address(std::stol(addr, 0, 16));
+       this->set_breakpoint_at_address(std::stol(addr, 0, 16));
     }
     else if (is_prefix(command, "register"))
     {
@@ -58,6 +59,9 @@ bool debugger::handle_command(const std::string& line) {
                 get_register_value(m_pid, r_index, &register_value);
                 std::cout << register_value << std::endl;
             }
+        }
+        else if (is_prefix(args[1], "dump")) {
+                this->dump_registers();
         }
     }
     else if(is_prefix(command, "exit") || is_prefix(command, "quit"))
@@ -119,4 +123,20 @@ void debugger::wait_for_signal()
     auto options = 0;
     // wait until the debuggee sends a SIGTRAP
     waitpid(m_pid, &wait_status, options);
+}
+
+/** 
+ *  @brief      Show the current register contents of process with [m_pid](i.e debuggee).
+ * 
+ *  @return     void
+ */
+void debugger::dump_registers()
+{
+    uint64_t register_value;
+    auto register_descriptor = get_register_descriptors_ref();
+    std::cout << std::left << "[Register Name]" << std::setw(16) << std::right << "[Value In Hex]\n";
+    for (const auto& rd : register_descriptor) {
+        get_register_value(m_pid, rd.reg_index, &register_value);
+        std::cout << std::left<<"["<< rd.reg_name <<"]"<<  std::setw(16) << std::right << std::hex<< register_value<< std::endl;
+    }
 }

@@ -62,6 +62,7 @@ Error get_register_value(pid_t pid, reg_x86_64 r,uint64_t* output );
 /*  Return Register index in user_regs_struct from its name       */
 Error get_register_from_name(const std::string& name,reg_x86_64* output);
 
+std::array<register_descriptor, (std::size_t)reg_x86_64::NUM_OF_REGISTERS> get_register_descriptors_ref();
 
 #else 
 #warning "reading and modifing registers will not supported for x86 32bits"
