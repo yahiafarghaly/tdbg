@@ -19,6 +19,8 @@
 #include <sys/personality.h>
 #include <linenoise.h>
 #include "breakpoint.h"
+#include "registers.h"
+#include "error_enum.h"
 
 class debugger {
 public:

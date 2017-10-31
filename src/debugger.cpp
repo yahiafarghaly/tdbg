@@ -35,6 +35,7 @@ bool debugger::handle_command(const std::string& line) {
 
     auto args = split(line,' ');
     auto command = args[0];
+    uint64_t register_value;
 
     if (is_prefix(command, "continue") || is_prefix(command, "c") || is_prefix(command, "cont")) {
         continue_execution();
@@ -45,7 +46,21 @@ bool debugger::handle_command(const std::string& line) {
        // set_breakpoint_at_address(new_address);
         set_breakpoint_at_address(std::stol(addr, 0, 16));
     }
-    else if(is_prefix(command, "exit"))
+    else if (is_prefix(command, "register"))
+    {
+        if (is_prefix(args[1], "read"))
+        {
+            reg_x86_64 r_index;
+            if (get_register_from_name(args[2], &r_index) != Success)
+                std::cout << "'"<< args[2]<< "'" << " is not exist in processor registers or not supported by the debugger\n";
+            else
+            {
+                get_register_value(m_pid, r_index, &register_value);
+                std::cout << register_value << std::endl;
+            }
+        }
+    }
+    else if(is_prefix(command, "exit") || is_prefix(command, "quit"))
     {
         return false;
     }
