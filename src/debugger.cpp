@@ -76,6 +76,7 @@ bool debugger::handle_command(const std::string& line) {
     }
     else if(is_prefix(command, "exit") || is_prefix(command, "quit"))
     {
+        ptrace(PTRACE_SETOPTIONS, m_pid, nullptr, PTRACE_O_EXITKILL);
         return false;
     }
     else {
