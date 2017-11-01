@@ -101,4 +101,31 @@ std::intptr_t add_address_offest(pid_t tracee_pid,std::string addr)
     return output;
 }
 
+/** 
+ *  @brief                 Convert the string wether it is in hex format or decimal to decimal format.
+ *             
+ *  @details               The string on formal of 0xA or 10 to 10
+ *  
+ *  @param     [value]     A numerical value in form of string.
+ * 
+ *  @return                A signed numerical value.
+ */
+int64_t convert_numerical_string_into_decimal_number(std::string value)
+{
+    if((value.compare(0, 2, "0x") == 0 || value.compare(0, 2, "0X") == 0)
+    && (value.size() > 2 )
+    && (value.find_first_not_of("0123456789abcdefABCDEF", 2) == std::string::npos) )
+    {
+        // hex notation
+        std::string hex_value = {value,2};
+        return std::stol(hex_value, 0, 16);
+    }
+    else
+    {
+        // decimal notation
+        return std::stol(value, 0, 10);
+    }
+}
+
+
 #endif /*__DEBUGGER_BACKEND_METHODS_H*/

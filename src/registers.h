@@ -57,12 +57,14 @@ struct register_descriptor
     std::string reg_name;
 };
 
+extern const std::array<register_descriptor, (std::size_t)reg_x86_64::NUM_OF_REGISTERS> g_register_descriptors;
+
 /*  Get the value which exist in register [r] of a process [pid]  */
 Error get_register_value(pid_t pid, reg_x86_64 r,uint64_t* output );
 /*  Return Register index in user_regs_struct from its name       */
 Error get_register_from_name(const std::string& name,reg_x86_64* output);
-
-extern const std::array<register_descriptor, (std::size_t)reg_x86_64::NUM_OF_REGISTERS> g_register_descriptors;
+/*  Set a [value] which exist in register [r] of a process [pid]  */
+Error set_register_value(pid_t pid, reg_x86_64 r, uint64_t value);
 
 #else 
 #warning "reading and modifing registers will not supported for x86 32bits"

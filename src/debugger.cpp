@@ -60,6 +60,16 @@ bool debugger::handle_command(const std::string& line) {
                 std::cout << register_value << std::endl;
             }
         }
+        else if(is_prefix(args[1], "write")) // ex: register write rax 0xdeadbeaf
+        {
+            reg_x86_64 r_index;
+            if (get_register_from_name(args[2], &r_index) != Success)
+                std::cout << "'"<< args[2]<< "'" << " is not exist in processor registers or not supported by the debugger\n";
+            else
+            {
+                set_register_value(m_pid,r_index,convert_numerical_string_into_decimal_number(args[3]));
+            }
+        }
         else if (is_prefix(args[1], "dump")) {
                 this->dump_registers();
         }

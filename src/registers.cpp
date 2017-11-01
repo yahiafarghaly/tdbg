@@ -34,14 +34,14 @@ const std::array<register_descriptor, (std::size_t)reg_x86_64::NUM_OF_REGISTERS>
 }};
 
 /** 
- *  @brief      Get the value which exist in register [r] of a process [pid]  
+ *  @brief      Get the value which exist in register [r] in (decimal) of a process [pid]  
  *  @details    Cast the first address of structure then advance by the required
  *              register [r] and get the value
  * 
  *  @return     register value and Error if exist
+ * 
  */
 Error get_register_value(pid_t pid, reg_x86_64 r,uint64_t* output ) {
-
     if(output == nullptr) return OutputIsNULL;
     if(r > reg_x86_64::NUM_OF_REGISTERS) return WrongRegisterNumber;
 
@@ -52,6 +52,22 @@ Error get_register_value(pid_t pid, reg_x86_64 r,uint64_t* output ) {
 
     return Success;
 }
+
+/** 
+ *  @brief      Set a [value] which exist in register [r] of a process [pid]. 
+ *  @return     Error if exist
+ */
+Error set_register_value(pid_t pid, reg_x86_64 r, uint64_t value)
+{
+    if(r > reg_x86_64::NUM_OF_REGISTERS) return WrongRegisterNumber;
+    user_regs_struct regs;
+    ptrace(PTRACE_GETREGS, pid, nullptr, &regs);
+
+    *(reinterpret_cast<uint64_t*>(&regs) + (uint64_t)r) = value;
+    ptrace(PTRACE_SETREGS, pid, nullptr, &regs);
+    return Success;
+}
+
 
 /** 
  *  @brief      Return Register index in user_regs_struct from its name.
