@@ -69,12 +69,6 @@ Error get_register_from_name(const std::string& name,reg_x86_64* output) {
     return Success;
 }
 
-
-std::array<register_descriptor, (std::size_t)reg_x86_64::NUM_OF_REGISTERS> get_register_descriptors_ref()
-{
-    return g_register_descriptors;
-}
-
 #else 
 #warning "reading and modifing registers will not supported for x86 32bits"
 #endif

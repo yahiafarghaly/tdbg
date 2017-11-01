@@ -28,6 +28,8 @@
         "type_traits": "cpp",
         "typeinfo": "cpp",
         "utility": "cpp",
-        "cerrno": "cpp"
+        "cerrno": "cpp",
+        "ctime": "cpp",
+        "iomanip": "cpp"
     }
 }

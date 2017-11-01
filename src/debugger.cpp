@@ -133,9 +133,8 @@ void debugger::wait_for_signal()
 void debugger::dump_registers()
 {
     uint64_t register_value;
-    auto register_descriptor = get_register_descriptors_ref();
     std::cout << std::left << "[Register Name]" << std::setw(16) << std::right << "[Value In Hex]\n";
-    for (const auto& rd : register_descriptor) {
+    for (const auto& rd : g_register_descriptors) {
         get_register_value(m_pid, rd.reg_index, &register_value);
         std::cout << std::left<<"["<< rd.reg_name <<"]"<<  std::setw(16) << std::right << std::hex<< register_value<< std::endl;
     }
