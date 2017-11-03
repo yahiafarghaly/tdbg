@@ -16,8 +16,8 @@
 void breakpoint::enable() {
     errno = 0;
 	// Fetch the program instruction at the desired address of a specific process.
-    auto data = ptrace(PTRACE_PEEKTEXT, m_pid, m_addr, nullptr);
-    if (data < 0)
+    m_saved_data = ptrace(PTRACE_PEEKTEXT, m_pid, m_addr, nullptr);
+    if (m_saved_data < 0)
     {
         switch (errno)
         {
@@ -43,13 +43,10 @@ void breakpoint::enable() {
             break;
         }
     }
-    // Save the lower byte which will be replaced with INT3 instruction.
-    m_saved_data = static_cast<uint8_t>(data & 0xff);
-    uint64_t int3 = 0xcc;
-    // Set the lower byte to INT3 instruction
-    uint64_t data_with_int3 = ((data & ~0xff) | int3);
-    // Push the modified instruction with the breakpoint to the same address it was fetched.
-    ptrace(PTRACE_POKETEXT, m_pid, m_addr, data_with_int3);
+    /* Inject the magical word of making a software interrupt 
+       which is specifically defined for use by debuggers in intel processors. */ 
+    ptrace(PTRACE_POKETEXT, m_pid, m_addr, 0xCC);
+
     // Enable that (this) object of the class has a breakpoint at [m_addr] of [m_pid] process.
     m_enabled = true;
 }
@@ -72,4 +69,10 @@ void breakpoint::disable() {
     ptrace(PTRACE_POKETEXT, m_pid, m_addr, restored_data);
     // Disbale that (this) object of the class has a breakpoint at [m_addr] of [m_pid] process.
     m_enabled = false;
+}
+
+void breakpoint::stop_execution()
+{
+    /*restore instruction*/
+    ptrace(PTRACE_POKETEXT, m_pid, m_addr,m_saved_data);
 }
