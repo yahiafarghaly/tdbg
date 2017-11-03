@@ -7,6 +7,7 @@
 #include <sstream>
 #include <stdlib.h>
 #include <sys/ptrace.h>
+#include <sys/reg.h>
 #include <errno.h>
 #include <unistd.h>
 #include <sys/types.h>
@@ -26,6 +27,9 @@ public:
     void enable();
     // Disable setting a breakpoint at a specific address [m_addr] of process [m_pid].
     void disable();
+    /* Restore the instruction which the breakpoint was set to and decrement EIP register to point to
+       the restored instruction */
+    void stop_execution();
 
     // is (this) object of the class has an active breakpoint.
     auto is_enabled() const -> bool { return m_enabled; }
@@ -41,7 +45,7 @@ private:
     bool m_enabled;
     // the lower byte of the instruction at address [m_addr] which is replaced
     // with INT3 byte for making a breakpoint in x86 processors.
-    uint8_t m_saved_data;
+    long m_saved_data;
 };
 
 #endif

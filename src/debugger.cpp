@@ -16,7 +16,19 @@ void debugger::run() {
     waits at its entry point till debugger sends it a signal (PTRACE_CONT) for
     Contining its execution 
     */
-    wait_for_signal();
+    int signal_status = wait_for_signal();
+    if (WIFSTOPPED(signal_status))
+    {
+        /*read eip*/
+        intptr_t rip = ptrace(PTRACE_PEEKUSER, m_pid, 8 * RIP, NULL) - 1;
+        printf("Process %d started and initially stopped at 0x%lx\n", m_pid, rip);
+    }
+    else
+    {
+        printf("Process %d doesn't send SIGTRAP !\n",m_pid);
+        printf("tdbg exits.\n");
+        exit(1);
+    }
 
     char* line = nullptr;
     // use linenoise for making a nice command line prompt for the debugger.
@@ -97,10 +109,40 @@ bool debugger::handle_command(const std::string& line) {
  * 
  *  @return     void
  */
-void debugger::continue_execution() {
+void debugger::continue_execution()
+{
     // Resume the execution of the debugee program.
     ptrace(PTRACE_CONT, m_pid, nullptr, nullptr);
-    wait_for_signal();
+    int signal_status = wait_for_signal();
+
+    if (WIFSTOPPED(signal_status))
+    {
+        /*read eip*/
+        intptr_t rip = ptrace(PTRACE_PEEKUSER, m_pid, 8 * RIP, NULL) - 1;
+        if (m_breakpoints.find(rip) != m_breakpoints.end())
+        {
+            m_breakpoints[rip].stop_execution();
+            /*decrement eip*/
+            ptrace(PTRACE_POKEUSER, m_pid, 8 * RIP, rip);
+            printf("Process %d stopped at 0x%lx\n", m_pid, rip);
+        }
+        else
+        {
+            printf("---------- F O R Diagnostic only ----------\n");
+            printf("RIP reg value doesn't match a stored breakpoint.\n");
+            printf("RIP Value: 0x%lx\n",rip);
+            printf("Available breakpoints addresses:\n");
+            std::for_each(m_breakpoints.begin(), m_breakpoints.end(),
+            [](const std::pair<std::intptr_t, breakpoint>& p) {
+                printf("0x%lx\n",p.first);
+            });
+            printf("-------------------------------------------\n");
+        }
+    }
+    else
+    {
+        printf("Debugged process is not running any more.\n");
+    }
 }
 
 /** 
@@ -127,12 +169,13 @@ void debugger::set_breakpoint_at_address(std::intptr_t addr) {
  * 
  *  @return     void
  */
-void debugger::wait_for_signal()
+int debugger::wait_for_signal()
 {
     int wait_status;
     auto options = 0;
     // wait until the debuggee sends a SIGTRAP
     waitpid(m_pid, &wait_status, options);
+    return  wait_status;
 }
 
 /** 
