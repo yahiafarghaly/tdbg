@@ -21,6 +21,8 @@ int main(int argc, char* argv[]) {
           In child process, execute the debuggee program
           PTRACE_TRACEME turns the calling thread into a tracee which allow the parent thread to
           examine and change the tracee's memory and registers. 
+          After calling ptrace((PTRACE_TRACEME...) any signal,
+          except for SIGKILL, sent to the traced process will cause it to stop executing.
         */
         ptrace(PTRACE_TRACEME, 0, nullptr, nullptr);
         errno = 0;
@@ -29,6 +31,9 @@ int main(int argc, char* argv[]) {
             if (EINVAL == errno)
                 std::cout << "The kernel was unable to change the personality.\n";
         }
+        /*
+         Calling exec from the traced process causes a SIGTRAP being sent to it,
+         also causing it to stop. */
         execl(prog, prog, nullptr);
     }
     else if (pid >= 1)  { 
