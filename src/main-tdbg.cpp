@@ -3,6 +3,9 @@
 #include <unistd.h>
 #include "debugger.h"
 
+#define  VERSION_MAJOR  0
+#define  VERSION_MINOR  0
+
 int main(int argc, char* argv[]) {
     
     if (argc < 2) {
