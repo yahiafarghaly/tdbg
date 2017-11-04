@@ -74,6 +74,11 @@ bool debugger::handle_command(const std::string& line) {
         IS_TRACED_PROCESS_CAPTURED();
         this->continue_execution();
     }
+    else if(is_prefix(command, "next"))
+    {
+        IS_TRACED_PROCESS_CAPTURED();
+        this->next_instruction();
+    }
     else if(is_prefix(command, "break")) {
         IS_TRACED_PROCESS_CAPTURED();
         std::string addr {args[1], 2}; //naively assume that the user has written 0xADDRESS , so take what after 0x
@@ -301,4 +306,25 @@ bool debugger::run_traced_process()
         return false;
     }
     return true;
+}
+
+void debugger::next_instruction()
+{
+    ptrace(PTRACE_SINGLESTEP, m_pid, nullptr, nullptr);
+    int signal_status = wait_for_signal();
+
+    if (WIFSTOPPED(signal_status)) // such as SIGTRAP
+    {
+        printf("Process %d stopped at 0x%lx\n", m_pid, this->get_current_instruction_address());
+    }
+    else
+    {
+        printf("Debugged process is not running any more.\n");
+        this->debuggee_captured = false;
+    }
+}
+
+std::intptr_t debugger::get_current_instruction_address()
+{
+    return (ptrace(PTRACE_PEEKUSER, m_pid, 8 * RIP, NULL) - 1);
 }
