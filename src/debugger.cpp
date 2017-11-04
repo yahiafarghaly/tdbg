@@ -19,9 +19,16 @@ void debugger::run() {
     int signal_status = wait_for_signal();
     if (WIFSTOPPED(signal_status))
     {
-        /*read eip*/
+        /*EIP(in x86 mode) or RIP (in 64 mode) register hold the next instruction
+         address to be executed by the processor in the traced program.
+         Here [rip] variable contains the the current instruction address after
+         substracting a one from it.
+
+         Note: RIP reg is multiplied by 8 since each register is 8 byte long in array
+         of registers and RIP value intself is the index of RIP register in this array. */
         intptr_t rip = ptrace(PTRACE_PEEKUSER, m_pid, 8 * RIP, NULL) - 1;
         printf("Process %d started and initially stopped at 0x%lx\n", m_pid, rip);
+        this->debuggee_captured = true;
     }
     else
     {
@@ -46,21 +53,35 @@ void debugger::run() {
  */
 bool debugger::handle_command(const std::string& line) {
 
+/* A small macro to define if the debuggee program is killed or in debug-mode.
+  Only be used inside handle_command()
+*/
+#define IS_TRACED_PROCESS_CAPTURED()                  \
+    do                                                \
+    {                                                 \
+        if (!debuggee_captured)                       \
+        {                                             \
+            printf("No runnable process to debug\n"); \
+            return true;                              \
+        }                                             \
+    } while (0);
+
     auto args = split(line,' ');
     auto command = args[0];
     uint64_t register_value;
 
     if (is_prefix(command, "continue") || is_prefix(command, "c") || is_prefix(command, "cont")) {
+        IS_TRACED_PROCESS_CAPTURED();
         this->continue_execution();
     }
     else if(is_prefix(command, "break")) {
+        IS_TRACED_PROCESS_CAPTURED();
         std::string addr {args[1], 2}; //naively assume that the user has written 0xADDRESS , so take what after 0x
-       // std::intptr_t new_address = add_address_offest(m_pid,addr);
-       // set_breakpoint_at_address(new_address);
        this->set_breakpoint_at_address(std::stol(addr, 0, 16));
     }
     else if (is_prefix(command, "register"))
     {
+        IS_TRACED_PROCESS_CAPTURED();
         if (is_prefix(args[1], "read"))
         {
             reg_x86_64 r_index;
@@ -84,6 +105,34 @@ bool debugger::handle_command(const std::string& line) {
         }
         else if (is_prefix(args[1], "dump")) {
                 this->dump_registers();
+        }
+    }
+    else if(is_prefix(command, "kill"))
+    {
+        IS_TRACED_PROCESS_CAPTURED();
+        ptrace(PTRACE_SETOPTIONS, m_pid, nullptr, PTRACE_O_EXITKILL);
+        debuggee_captured = false;
+        m_breakpoints.clear();
+        printf("Process %d is killed\n", m_pid);
+    }
+    else if(is_prefix(command, "run"))
+    {
+        if(!debuggee_captured)
+        {
+            if (this->run_traced_process())
+            {
+                debuggee_captured = true;
+            }
+            else
+            {
+                std::cout << "Failure to run " << m_prog_name << std::endl;
+                debuggee_captured = false;
+            }
+        }
+        else
+        {
+            intptr_t rip = ptrace(PTRACE_PEEKUSER, m_pid, 8 * RIP, NULL) - 1;
+            printf("Process %d already has been started from a while and stopped at 0x%lx\n", m_pid, rip);
         }
     }
     else if(is_prefix(command, "exit") || is_prefix(command, "quit"))
@@ -151,6 +200,7 @@ void debugger::continue_execution()
     else
     {
         printf("Debugged process is not running any more.\n");
+        this->debuggee_captured = false;
     }
 }
 
@@ -203,4 +253,52 @@ void debugger::dump_registers()
         get_register_value(m_pid, rd.reg_index, &register_value);
         std::cout << std::left<<"["<< rd.reg_name <<"]"<<  std::setw(16) << std::right << std::hex<< register_value<< std::endl;
     }
+}
+
+/** 
+ *  @brief      Execute the traced process to run, mainly used if the debugged process
+ *              is killed and an intention to re-run again is exist.
+ * 
+ *  @return     true, if successful start.
+ */
+bool debugger::run_traced_process()
+{
+    auto pid = fork();
+    if (pid == 0) { 
+        ptrace(PTRACE_TRACEME, 0, nullptr, nullptr);
+        errno = 0;
+        if (personality(ADDR_NO_RANDOMIZE) < 0)
+        {
+            if (EINVAL == errno)
+                std::cout << "The kernel was unable to change the personality.\n";
+        }
+        /*
+         Calling exec from the traced process causes a SIGTRAP being sent to it,
+         also causing it to stop. */
+        execl(m_prog_name.c_str(), m_prog_name.c_str(), nullptr);
+    }
+    else if (pid >= 1)  { 
+        // The PID of the child process in parent
+        // we're in the parent process
+        // execute debugger
+        this->m_pid = pid;
+        int signal_status = wait_for_signal();
+        if (WIFSTOPPED(signal_status))
+        {
+            intptr_t rip = ptrace(PTRACE_PEEKUSER, m_pid, 8 * RIP, NULL) - 1;
+            printf("Process %d started and initially stopped at 0x%lx\n", m_pid, rip);
+        }
+        else
+        {
+            printf("Process %d doesn't send SIGTRAP !\n",m_pid);
+            printf("tdbg exits.\n");
+            exit(1);
+        }
+    }
+    else
+    {
+        std::cerr << "tdbg: Failed to launch " << m_prog_name << " program\n";
+        return false;
+    }
+    return true;
 }

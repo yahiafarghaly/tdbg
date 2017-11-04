@@ -25,7 +25,7 @@
 class debugger {
 public:
     debugger (std::string prog_name, pid_t pid)
-        : m_prog_name{std::move(prog_name)}, m_pid{pid} {}
+        : m_prog_name{std::move(prog_name)}, m_pid{pid} {debuggee_captured = false;}
 
     // Start the debugger
     void run();
@@ -42,6 +42,8 @@ private:
     /* An un-order map of breakpoint objects to be access by its addresses hashes.
          m_breakpoints[breakpoint address] -> breakpoint object. */
     std::unordered_map<std::intptr_t, breakpoint> m_breakpoints;
+    // To determine if traced process is runnable or not.
+    bool debuggee_captured;
 
     /*****  Debugger Control functions on debuggee  *****/
 
@@ -51,6 +53,8 @@ private:
     void set_breakpoint_at_address(std::intptr_t addr);
     // Show the current register values of process with [m_pid].
     void dump_registers();
+    // start the debuggee program 
+    bool run_traced_process();
 };
 
 #endif /* __DEBUGGER_H */
