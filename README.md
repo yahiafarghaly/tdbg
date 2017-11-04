@@ -1,13 +1,20 @@
 # tdbg
 
 is a tiny debugger for x86_64 platform similar to gdb.
-it is for educational purpose and the tutorials i used is
+it is for educational purpose.
+
+The learning referrences which the implementation may seem alike:
 
 - [Simon Brand's blog](https://blog.tartanllama.xyz/writing-a-linux-debugger-setup/)
+- [low tech blog](http://sigalrm.blogspot.com.eg/2010/07/writing-minimal-debugger.html)
 
-#Versions
+## Available Commands
 
-## V0.0
-- Able to *** continue *** execution of the debuggee program.
-- *** read *** and *** write *** into basics registers.
-- *** breakpoint *** by address but it seems to not working properly.
+| *Command* [**Args**]         | Functionality                                                        |
+|-----------------|----------------------------------------------------------------------|
+| *continue*,*c*,*cont* | Resume the execution of the traced process.                         |
+| *break* 0x**ADDRESS** | Set a breakpoint at a certain address of the address space of the traced process. |
+| *read register* **Reg Name** | Read the register value of one of supported registers. |
+| *write register* **Reg Name** **Reg Value** | Write a value to a specific register. **Reg Value** can be in decimal or hex notation. |
+| *register dump* | Show a list of the processor registers values for the current process. |
+| *exit*,*quit* | Terminate the traced process and exit the debugger. |

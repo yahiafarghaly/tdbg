@@ -116,14 +116,22 @@ void debugger::continue_execution()
     ptrace(PTRACE_CONT, m_pid, nullptr, nullptr);
     int signal_status = wait_for_signal();
 
-    if (WIFSTOPPED(signal_status))
+    if (WIFSTOPPED(signal_status)) // such as SIGTRAP
     {
-        /*read eip*/
+        /*EIP(in x86 mode) or RIP (in 64 mode) register hold the next instruction
+         address to be executed by the processor in the traced program.
+         Here [rip] variable contains the the current instruction address after
+         substracting a one from it.
+
+         Note: RIP reg is multiplied by 8 since each register is 8 byte long in array
+         of registers and RIP value intself is the index of RIP register in this array. */
         intptr_t rip = ptrace(PTRACE_PEEKUSER, m_pid, 8 * RIP, NULL) - 1;
+        // check if the current instruction address is a stored breakpoint.
         if (m_breakpoints.find(rip) != m_breakpoints.end())
         {
+            // restore the instruction instead of breakpoint instruction.
             m_breakpoints[rip].stop_execution();
-            /*decrement eip*/
+            // Set RIP reg to the decrement rip value so the debugger points to current restored instruction.
             ptrace(PTRACE_POKEUSER, m_pid, 8 * RIP, rip);
             printf("Process %d stopped at 0x%lx\n", m_pid, rip);
         }
@@ -156,8 +164,11 @@ void debugger::set_breakpoint_at_address(std::intptr_t addr) {
     {
         std::cout << "Set a breakpoint at address 0x" << std::hex << addr << std::endl;
         breakpoint bp {m_pid, addr};
-        bp.enable();
-        m_breakpoints[addr] = bp;
+        if(bp.enable())
+            m_breakpoints[addr] = bp;
+        else
+            std::cout << "Not valid address to set a breakpoint.\n";
+
     }
     else
         std::cout << "A breakpoint is already set at 0x" << std::hex << addr << std::endl;
