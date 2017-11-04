@@ -20,3 +20,4 @@ The learning referrences which the implementation may seem alike:
 | *exit*,*quit* | Terminate the traced process and exit the debugger. |
 | *run* | Execute the traced process and stopped it at its entry point. |
 | *kill* | Kill the traced process. |
+| *next* | Make a single step forward in the traced process execution (i.e: move to the next instruction). |
