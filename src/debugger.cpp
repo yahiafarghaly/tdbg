@@ -206,6 +206,7 @@ void debugger::continue_execution()
     {
         printf("Debugged process is not running any more.\n");
         this->debuggee_captured = false;
+        m_breakpoints.clear();
     }
 }
 
@@ -321,6 +322,7 @@ void debugger::next_instruction()
     {
         printf("Debugged process is not running any more.\n");
         this->debuggee_captured = false;
+        m_breakpoints.clear();
     }
 }
 
