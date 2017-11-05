@@ -45,8 +45,12 @@ private:
     bool handle_command(const std::string &line);
     // wait until the debuggee sends a SIGTRAP signal.
     int wait_for_signal();
-    // return current instruction address
-    std::intptr_t get_current_instruction_address();
+    // return next instruction address to be executed.
+    std::intptr_t get_current_stopped_location();
+    // Set Current execution address to a specific address (PC = program counter).
+    void set_pc_location(std::intptr_t pc);
+    // show current stopped location instruction value in hex
+    void show_instruction_value(std::intptr_t addr);
 
     /*****  Debugger Control functions on debuggee  *****/
 

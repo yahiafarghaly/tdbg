@@ -26,8 +26,7 @@ void debugger::run() {
 
          Note: RIP reg is multiplied by 8 since each register is 8 byte long in array
          of registers and RIP value intself is the index of RIP register in this array. */
-        intptr_t rip = ptrace(PTRACE_PEEKUSER, m_pid, 8 * RIP, NULL) - 1;
-        printf("Process %d started and initially stopped at 0x%lx\n", m_pid, rip);
+        printf("Process %d started and initially stopped at 0x%lx\n", m_pid, this->get_current_stopped_location());
         this->debuggee_captured = true;
     }
     else
@@ -112,6 +111,15 @@ bool debugger::handle_command(const std::string& line) {
                 this->dump_registers();
         }
     }
+    else if(is_prefix(command, "show"))
+    {
+        IS_TRACED_PROCESS_CAPTURED();
+        if(is_prefix(args[1], "opcode"))
+        {
+            std::string addr {args[2], 2};
+            show_instruction_value(std::stol(addr, 0, 16));
+        }
+    }
     else if(is_prefix(command, "kill"))
     {
         IS_TRACED_PROCESS_CAPTURED();
@@ -136,8 +144,7 @@ bool debugger::handle_command(const std::string& line) {
         }
         else
         {
-            intptr_t rip = ptrace(PTRACE_PEEKUSER, m_pid, 8 * RIP, NULL) - 1;
-            printf("Process %d already has been started from a while and stopped at 0x%lx\n", m_pid, rip);
+            printf("Process %d already has been started from a while and stopped at 0x%lx\n", m_pid, this->get_current_stopped_location());
         }
     }
     else if(is_prefix(command, "exit") || is_prefix(command, "quit"))
@@ -202,9 +209,9 @@ void debugger::continue_execution()
             printf("-------------------------------------------\n");
         }
     }
-    else
+    else if(WIFEXITED(signal_status) || (WIFSIGNALED(signal_status) && WTERMSIG(signal_status) == SIGKILL))
     {
-        printf("Debugged process is not running any more.\n");
+        printf("continue: Debugged process is not running any more.\n");
         this->debuggee_captured = false;
         m_breakpoints.clear();
     }
@@ -293,8 +300,7 @@ bool debugger::run_traced_process()
         int signal_status = wait_for_signal();
         if (WIFSTOPPED(signal_status))
         {
-            intptr_t rip = ptrace(PTRACE_PEEKUSER, m_pid, 8 * RIP, NULL) - 1;
-            printf("Process %d started and initially stopped at 0x%lx\n", m_pid, rip);
+            printf("Process %d started and initially stopped at 0x%lx\n", m_pid, this->get_current_stopped_location());
         }
         else
         {
@@ -310,25 +316,64 @@ bool debugger::run_traced_process()
     }
     return true;
 }
-
+void debugger::show_instruction_value(std::intptr_t addr)
+{
+    long opcode[1] = {0};
+    unsigned char *op[8] = {0};
+    opcode[0] = ptrace(PTRACE_PEEKTEXT, m_pid, addr, NULL);
+    op[0] = (unsigned char*)(opcode) + 0;
+    op[1] = (unsigned char*)(opcode) + 1;
+    op[2] = (unsigned char*)(opcode) + 2;
+    op[3] = (unsigned char*)(opcode) + 3;
+    op[4] = (unsigned char*)(opcode) + 4;
+    op[5] = (unsigned char*)(opcode) + 5;
+    op[6] = (unsigned char*)(opcode) + 6;
+    op[7] = (unsigned char*)(opcode) + 7; // the start of the next instruction
+    printf("Instruction value: ");
+    for(int i = 0 ; i < 7; i++)
+        printf("%x ",*(op[i]));
+    
+    printf("\n");
+}
 void debugger::next_instruction()
 {
-    ptrace(PTRACE_SINGLESTEP, m_pid, nullptr, nullptr);
-    int signal_status = wait_for_signal();
+    auto next_instruction_addr = this->get_current_stopped_location();
+    int signal_status;
+    auto bp = m_breakpoints.find(next_instruction_addr);
+    if (bp != m_breakpoints.end())
+    {
+        if (bp->second.is_enabled())
+        {
+            std::cout << "Next: found a breakpoint\n";
+            this->continue_execution();
+            return;
+        }
+    }
+    else{
+        // not a breakpoint.
+        ptrace(PTRACE_SINGLESTEP, m_pid, nullptr, nullptr);
+        signal_status = wait_for_signal();
+    }
+
 
     if (WIFSTOPPED(signal_status)) // such as SIGTRAP
     {
-        printf("Process %d stopped at 0x%lx\n", m_pid, this->get_current_instruction_address());
+        printf("Process %d stopped at 0x%lx\n", m_pid,this->get_current_stopped_location());
     }
     else
     {
-        printf("Debugged process is not running any more.\n");
+        printf("next: Debugged process is not running any more.\n");
         this->debuggee_captured = false;
         m_breakpoints.clear();
     }
 }
 
-std::intptr_t debugger::get_current_instruction_address()
+void debugger::set_pc_location(std::intptr_t pc)
 {
-    return (ptrace(PTRACE_PEEKUSER, m_pid, 8 * RIP, NULL) - 1);
+    ptrace(PTRACE_POKEUSER, m_pid, 8 * RIP, pc);
+}
+
+std::intptr_t debugger::get_current_stopped_location()
+{
+    return (ptrace(PTRACE_PEEKUSER, m_pid, 8 * RIP, NULL));
 }
