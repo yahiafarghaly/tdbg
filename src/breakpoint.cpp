@@ -11,9 +11,9 @@
  *              It is one byte long instruction which makes it perfect to be caught by ptrace.
  * 
  *  @Note       Works only for x86 processors.
- *  @return     void
+ *  @return     true if the memory address is a valid address. false,otherwise.
  */
-void breakpoint::enable() {
+bool breakpoint::enable() {
     errno = 0;
 	// Fetch the program instruction at the desired address of a specific process.
     m_saved_data = ptrace(PTRACE_PEEKTEXT, m_pid, m_addr, nullptr);
@@ -23,23 +23,30 @@ void breakpoint::enable() {
         {
         case EFAULT:
             std::cout << "ptrace error: EFAULT\n";
+            goto FAIL;
             break;
         case EIO:
             std::cout << "ptrace error: EIO\n";
+            goto FAIL;
             break;
         case ESRCH:
             std::cout << "ptrace error: ESRCH\n";
+            goto FAIL;
             break;
         case EPERM:
             std::cout << "ptrace error: EPERM\n";
+            goto FAIL;
             break;
         case EBUSY:
             std::cout << "ptrace error: EBUSY\n";
+            goto FAIL;
             break;
         case EINVAL:
             std::cout << "ptrace error: EINVAL\n";
+            goto FAIL;
             break;
         default:
+            // Not an error if the instruction as a value is less than zero.
             break;
         }
     }
@@ -49,30 +56,34 @@ void breakpoint::enable() {
 
     // Enable that (this) object of the class has a breakpoint at [m_addr] of [m_pid] process.
     m_enabled = true;
+    return  true;
+
+ FAIL:   return false;
 }
 
 /** 
  *  @brief     Disable setting a breakpoint at a specific address [m_addr] of
  *              process [m_pid].
  * 
- *  @details    Restore the old lower byte of the instruction instead of INT3 instruction.
+ *  @details    Restore the old the instruction instead of INT3 instruction.
  * 
  *  @Note       Works only for x86 processors.
  *  @return     void
  */
 void breakpoint::disable() {
-    // Fetch the INT3 instruction.
-    auto data = ptrace(PTRACE_PEEKTEXT, m_pid, m_addr, nullptr);
-    // Restore the old lower byte.
-    auto restored_data = ((data & ~0xff) | m_saved_data);
-    // Push the old instruction without 0xcc byte.
-    ptrace(PTRACE_POKETEXT, m_pid, m_addr, restored_data);
+    // restore instruction
+    ptrace(PTRACE_POKETEXT, m_pid, m_addr,m_saved_data);
     // Disbale that (this) object of the class has a breakpoint at [m_addr] of [m_pid] process.
     m_enabled = false;
 }
 
+/** 
+ *  @brief     Restoring the instruction which was corrupted by injecting INT3 instruction 
+ *              at a specific address [m_addr] of process [m_pid].
+ *  @return     void
+ */
 void breakpoint::stop_execution()
 {
-    /*restore instruction*/
+    // restore instruction
     ptrace(PTRACE_POKETEXT, m_pid, m_addr,m_saved_data);
 }

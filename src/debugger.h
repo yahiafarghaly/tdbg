@@ -25,15 +25,10 @@
 class debugger {
 public:
     debugger (std::string prog_name, pid_t pid)
-        : m_prog_name{std::move(prog_name)}, m_pid{pid} {}
+        : m_prog_name{std::move(prog_name)}, m_pid{pid} {debuggee_captured = false;}
 
     // Start the debugger
     void run();
-    // Handle the debugger user commands.
-    bool handle_command(const std::string& line);
-    // wait until the debuggee sends a SIGTRAP signal.
-    int wait_for_signal();
-
 private:
     // The debuggee program name
     std::string m_prog_name;
@@ -42,6 +37,20 @@ private:
     /* An un-order map of breakpoint objects to be access by its addresses hashes.
          m_breakpoints[breakpoint address] -> breakpoint object. */
     std::unordered_map<std::intptr_t, breakpoint> m_breakpoints;
+    // To determine if traced process is runnable or not.
+    bool debuggee_captured;
+
+    /*****  Debugger functions  *****/
+    // Handle the debugger user commands.
+    bool handle_command(const std::string &line);
+    // wait until the debuggee sends a SIGTRAP signal.
+    int wait_for_signal();
+    // return next instruction address to be executed.
+    std::intptr_t get_current_stopped_location();
+    // Set Current execution address to a specific address (PC = program counter).
+    void set_pc_location(std::intptr_t pc);
+    // show current stopped location instruction value in hex
+    void show_instruction_value(std::intptr_t addr);
 
     /*****  Debugger Control functions on debuggee  *****/
 
@@ -51,6 +60,10 @@ private:
     void set_breakpoint_at_address(std::intptr_t addr);
     // Show the current register values of process with [m_pid].
     void dump_registers();
+    // Start the debuggee program 
+    bool run_traced_process();
+    // Go to the next instruction.
+    void next_instruction(); 
 };
 
 #endif /* __DEBUGGER_H */

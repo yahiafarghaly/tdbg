@@ -24,11 +24,10 @@ public:
     {}
     
     // Enable setting a breakpoint at a specific address [m_addr] of process [m_pid].
-    void enable();
-    // Disable setting a breakpoint at a specific address [m_addr] of process [m_pid].
+    bool enable();
+    // Deleting the breakpoint at a specific address [m_addr] of process [m_pid] and restore the old instruction.
     void disable();
-    /* Restore the instruction which the breakpoint was set to and decrement EIP register to point to
-       the restored instruction */
+    // Restore the instruction which the breakpoint was set without deleting the breakpoint.
     void stop_execution();
 
     // is (this) object of the class has an active breakpoint.

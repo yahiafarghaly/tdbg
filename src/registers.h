@@ -18,6 +18,7 @@
  *  so we can access it easily  */
 enum class reg_x86_64
 {
+// In future probably you will use the index that exist in /usr/include/x86_64-linux-gnu/sys/reg.h
   r15 = 0,
   r14,
   r13,
