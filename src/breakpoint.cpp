@@ -23,26 +23,32 @@ bool breakpoint::enable() {
         {
         case EFAULT:
             std::cout << "ptrace error: EFAULT\n";
+            goto FAIL;
             break;
         case EIO:
             std::cout << "ptrace error: EIO\n";
+            goto FAIL;
             break;
         case ESRCH:
             std::cout << "ptrace error: ESRCH\n";
+            goto FAIL;
             break;
         case EPERM:
             std::cout << "ptrace error: EPERM\n";
+            goto FAIL;
             break;
         case EBUSY:
             std::cout << "ptrace error: EBUSY\n";
+            goto FAIL;
             break;
         case EINVAL:
             std::cout << "ptrace error: EINVAL\n";
+            goto FAIL;
             break;
         default:
+            // Not an error if the instruction as a value is less than zero.
             break;
         }
-        return false;
     }
     /* Inject the magical word of making a software interrupt 
        which is specifically defined for use by debuggers in intel processors. */ 
@@ -51,6 +57,8 @@ bool breakpoint::enable() {
     // Enable that (this) object of the class has a breakpoint at [m_addr] of [m_pid] process.
     m_enabled = true;
     return  true;
+
+ FAIL:   return false;
 }
 
 /** 

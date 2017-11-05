@@ -218,10 +218,12 @@ void debugger::continue_execution()
 void debugger::set_breakpoint_at_address(std::intptr_t addr) {
     if(m_breakpoints.find(addr) == m_breakpoints.end())
     {
-        std::cout << "Set a breakpoint at address 0x" << std::hex << addr << std::endl;
         breakpoint bp {m_pid, addr};
         if(bp.enable())
+        {
             m_breakpoints[addr] = bp;
+            std::cout << "Set a breakpoint at address 0x" << std::hex << addr << std::endl;
+        }
         else
             std::cout << "Not valid address to set a breakpoint.\n";
 
