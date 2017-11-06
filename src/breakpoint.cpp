@@ -15,9 +15,11 @@
  */
 bool breakpoint::enable() {
     errno = 0;
+    uint64_t int3 = 0x000000CC;
+    uint64_t data_with_int3;
 	// Fetch the program instruction at the desired address of a specific process.
-    m_saved_data = ptrace(PTRACE_PEEKTEXT, m_pid, m_addr, nullptr);
-    if (m_saved_data < 0)
+    auto data = ptrace(PTRACE_PEEKTEXT, m_pid, m_addr, nullptr);
+    if (data < 0)
     {
         switch (errno)
         {
@@ -50,9 +52,11 @@ bool breakpoint::enable() {
             break;
         }
     }
-    /* Inject the magical word of making a software interrupt 
+    /* Inject the magical byte of making a software interrupt 
        which is specifically defined for use by debuggers in intel processors. */ 
-    ptrace(PTRACE_POKETEXT, m_pid, m_addr, 0xCC);
+    m_saved_data = static_cast<uint8_t>(data & 0x000000ff); //save bottom byte
+    data_with_int3 = ((data & ~0x000000ff) | int3);         //set bottom byte to 0xcc
+    ptrace(PTRACE_POKETEXT, m_pid, m_addr, data_with_int3);
 
     // Enable that (this) object of the class has a breakpoint at [m_addr] of [m_pid] process.
     m_enabled = true;
@@ -72,7 +76,7 @@ bool breakpoint::enable() {
  */
 void breakpoint::disable() {
     // restore instruction
-    ptrace(PTRACE_POKETEXT, m_pid, m_addr,m_saved_data);
+    this->stop_execution();
     // Disbale that (this) object of the class has a breakpoint at [m_addr] of [m_pid] process.
     m_enabled = false;
 }
@@ -85,5 +89,7 @@ void breakpoint::disable() {
 void breakpoint::stop_execution()
 {
     // restore instruction
-    ptrace(PTRACE_POKETEXT, m_pid, m_addr,m_saved_data);
+    auto data = ptrace(PTRACE_PEEKTEXT, m_pid, m_addr, nullptr);
+    auto restored_data = ((data & ~0x000000ff) | m_saved_data);
+    ptrace(PTRACE_POKEDATA, m_pid, m_addr, restored_data);
 }
