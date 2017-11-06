@@ -344,9 +344,10 @@ void debugger::next_instruction()
     {
         if (bp->second.is_enabled())
         {
-            std::cout << "Next: found a breakpoint\n";
-            this->continue_execution();
-            return;
+            bp->second.disable();
+            ptrace(PTRACE_SINGLESTEP, m_pid, nullptr, nullptr);
+            signal_status = wait_for_signal();
+            bp->second.enable();
         }
     }
     else{
