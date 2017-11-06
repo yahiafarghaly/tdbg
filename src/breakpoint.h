@@ -27,7 +27,7 @@ public:
     bool enable();
     // Deleting the breakpoint at a specific address [m_addr] of process [m_pid] and restore the old instruction.
     void disable();
-    // Restore the instruction which the breakpoint was set without deleting the breakpoint.
+    // Restore the instruction which the breakpoint was set without deleting the breakpoint location.
     void stop_execution();
 
     // is (this) object of the class has an active breakpoint.
@@ -44,7 +44,7 @@ private:
     bool m_enabled;
     // the lower byte of the instruction at address [m_addr] which is replaced
     // with INT3 byte for making a breakpoint in x86 processors.
-    long m_saved_data;
+    uint8_t m_saved_data;
 };
 
 #endif
