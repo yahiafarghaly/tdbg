@@ -37,6 +37,8 @@ private:
     /* An un-order map of breakpoint objects to be access by its addresses hashes.
          m_breakpoints[breakpoint address] -> breakpoint object. */
     std::unordered_map<std::intptr_t, breakpoint> m_breakpoints;
+    // For restoring INT3 instruction after we replaced it with the original instruction.
+    breakpoint* pLastActivatedBreakPoint;
     // To determine if traced process is runnable or not.
     bool debuggee_captured;
 
@@ -63,7 +65,7 @@ private:
     // Start the debuggee program 
     bool run_traced_process();
     // Go to the next instruction.
-    void next_instruction(); 
+    void next_instruction();
 };
 
 #endif /* __DEBUGGER_H */

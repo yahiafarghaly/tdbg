@@ -37,6 +37,7 @@ void debugger::run() {
     }
 
     char* line = nullptr;
+    this->pLastActivatedBreakPoint = nullptr;
     // use linenoise for making a nice command line prompt for the debugger.
     while((line = linenoise("tdbg> ")) != nullptr) {
         if(!handle_command(line)) break;
@@ -173,6 +174,22 @@ bool debugger::handle_command(const std::string& line) {
  */
 void debugger::continue_execution()
 {
+    // To return the breakpoint INT3 instruction again for the last restored instruction.
+    // Simply, before we go, we return the user breakpoint again.
+    if (pLastActivatedBreakPoint != nullptr)
+    {
+        if (pLastActivatedBreakPoint->is_enabled())
+        {
+            // single step after the restored location.
+            ptrace(PTRACE_SINGLESTEP, m_pid, nullptr, nullptr);
+            // absorb the SIGTRAP due to single step.
+            wait_for_signal();
+            // restore INT3 instruction by inserting a breakpoint again.
+            pLastActivatedBreakPoint->enable();
+        }
+        // return to the origianl status since INT3 is back.
+        pLastActivatedBreakPoint = nullptr;
+    }
     // Resume the execution of the debugee program.
     ptrace(PTRACE_CONT, m_pid, nullptr, nullptr);
     int signal_status = wait_for_signal();
@@ -195,6 +212,17 @@ void debugger::continue_execution()
             // Set RIP reg to the decrement rip value so the debugger points to current restored instruction.
             ptrace(PTRACE_POKEUSER, m_pid, 8 * RIP, rip);
             printf("Process %d stopped at 0x%lx\n", m_pid, rip);
+
+            /* Store the location of breakpoint of the restored instruction in case 
+            the user issued a debugger command "continue" again. And before we continue,
+            we restore the breakpoint INT3 instruction again. 
+
+            Imaging the case of a breakpoint inside a loop ! if we haven't stored the last
+            breakpoint address which we restored its original instruction, we wouldn't able
+            to break at it again. not just a loop, a recursive function as an example 
+            will work ... etc.
+            */
+            this->pLastActivatedBreakPoint = &m_breakpoints[rip];
         }
         else
         {
