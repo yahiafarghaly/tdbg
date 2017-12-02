@@ -178,14 +178,14 @@ void debugger::continue_execution()
     // Simply, before we go, we return the user breakpoint again.
     if (pLastActivatedBreakPoint != nullptr)
     {
-        if (pLastActivatedBreakPoint->is_enabled())
+        if (pLastActivatedBreakPoint->BPEnabled())
         {
             // single step after the restored location.
             ptrace(PTRACE_SINGLESTEP, m_pid, nullptr, nullptr);
             // absorb the SIGTRAP due to single step.
             wait_for_signal();
             // restore INT3 instruction by inserting a breakpoint again.
-            pLastActivatedBreakPoint->enable();
+            pLastActivatedBreakPoint->setBP();
         }
         // return to the origianl status since INT3 is back.
         pLastActivatedBreakPoint = nullptr;
@@ -208,7 +208,7 @@ void debugger::continue_execution()
         if (m_breakpoints.find(rip) != m_breakpoints.end())
         {
             // restore the instruction instead of breakpoint instruction.
-            m_breakpoints[rip].stop_execution();
+            m_breakpoints[rip].restoreOriginalInstructionWithoutRemovingBP();
             // Set RIP reg to the decrement rip value so the debugger points to current restored instruction.
             ptrace(PTRACE_POKEUSER, m_pid, 8 * RIP, rip);
             printf("Process %d stopped at 0x%lx\n", m_pid, rip);
@@ -254,7 +254,7 @@ void debugger::set_breakpoint_at_address(std::intptr_t addr) {
     if(m_breakpoints.find(addr) == m_breakpoints.end())
     {
         breakpoint bp {m_pid, addr};
-        if(bp.enable())
+        if(bp.setBP())
         {
             m_breakpoints[addr] = bp;
             std::cout << "Set a breakpoint at address 0x" << std::hex << addr << std::endl;
@@ -370,12 +370,12 @@ void debugger::next_instruction()
     auto bp = m_breakpoints.find(next_instruction_addr);
     if (bp != m_breakpoints.end())
     {
-        if (bp->second.is_enabled())
+        if (bp->second.BPEnabled())
         {
-            bp->second.disable();
+            bp->second.removeBP();
             ptrace(PTRACE_SINGLESTEP, m_pid, nullptr, nullptr);
             signal_status = wait_for_signal();
-            bp->second.enable();
+            bp->second.setBP();
         }
     }
     else{
