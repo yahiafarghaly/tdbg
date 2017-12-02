@@ -18,6 +18,8 @@
 #include <array>
 #include <sys/personality.h>
 #include <linenoise.h>
+#include <dwarf++.hh>
+#include <elf++.hh>
 #include "breakpoint.h"
 #include "registers.h"
 #include "error_enum.h"
